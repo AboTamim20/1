@@ -51,6 +51,11 @@ npm test
 └── tests/api.test.js
 ```
 
+## تبويبات الواجهة
+
+نظرة عامة (بطاقات + رسم الإيرادات الشهرية) · العقود (بحث وتصفية وترقيم + إضافة وحذف) · العملاء (إضافة وحذف) ·
+الوحدات (إيراد كل وحدة + إضافة وحذف العقارات والوحدات) · التنبيهات · المواعيد · مقترحات التطوير.
+
 ## نموذج البيانات
 
 ```
@@ -72,7 +77,7 @@ properties ─┬─< units ─┬─< leases >── tenants
 | CRUD | `/api/properties` | العقارات |
 | CRUD | `/api/units` | الوحدات (`?property_id=&status=`) |
 | CRUD | `/api/tenants` | المستأجرون |
-| GET/POST | `/api/leases` | قائمة العقود / إنشاء عقد مع أقساطه |
+| GET/POST | `/api/leases` | قائمة العقود / إنشاء عقد مع أقساطه (`contract_number`، و`mark_paid` لتسجيل عقد سابق مسدّد بالكامل) |
 | GET | `/api/leases/:id` | العقد مع أقساطه |
 | POST | `/api/leases/:id/end` | إنهاء العقد (`{ end_date, status }`) |
 | GET/POST | `/api/payments` | سجل الدفعات / تسجيل دفعة (`{ installment_id, amount, method }`) |
@@ -80,7 +85,10 @@ properties ─┬─< units ─┬─< leases >── tenants
 | GET | `/api/appointments/upcoming?days=7` | المواعيد القادمة |
 | GET | `/api/reports/overdue` | المتأخرون مجمّعين حسب المستأجر (`?as_of=&grace_days=&group=installment`) |
 | GET | `/api/reports/upcoming-dues?days=7` | أقساط تستحق قريباً |
-| GET | `/api/reports/dashboard` | ملخص لوحة التحكم |
+| GET | `/api/reports/overview` | بطاقات النظرة العامة والإيرادات الشهرية |
+| GET | `/api/reports/alerts` | عقود تنتهي قريباً + المتأخرون + مواعيد الأسبوع |
+| GET | `/api/units/summary` | الوحدات مع إيرادات كل وحدة وحالة الإشغال |
+| DELETE | `/api/leases/:id` | حذف العقد مع أقساطه ودفعاته |
 
 ## أفكار للتطوير لاحقاً
 

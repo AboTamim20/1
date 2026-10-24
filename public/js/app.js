@@ -1,6 +1,10 @@
 // التنقل بين الشاشات وربط الأحداث
 const viewEl = document.getElementById('view');
-let current = 'dashboard';
+let current = 'overview';
+
+document.getElementById('today').textContent = new Date().toLocaleDateString('ar-SA-u-ca-gregory', {
+  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+});
 
 function toast(msg) {
   const el = document.getElementById('toast');
@@ -16,6 +20,7 @@ async function show(name) {
   viewEl.innerHTML = '<div class="empty">جاري التحميل...</div>';
   try {
     viewEl.innerHTML = await views[name]();
+    if (after[name]) after[name]();
   } catch (e) {
     viewEl.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
   }
@@ -40,6 +45,22 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   if (e.target.dataset.view) show(e.target.dataset.view);
 });
 
+viewEl.addEventListener('input', (e) => {
+  if (e.target.id === 'lease-search') {
+    views._leaseUi.search = e.target.value;
+    views._leaseUi.page = 1;
+    drawLeases();
+  }
+});
+
+viewEl.addEventListener('change', (e) => {
+  if (e.target.id === 'lease-status') {
+    views._leaseUi.status = e.target.value;
+    views._leaseUi.page = 1;
+    drawLeases();
+  }
+});
+
 viewEl.addEventListener('submit', async (e) => {
   const form = e.target.closest('form[data-create]');
   if (!form) return;
@@ -49,10 +70,17 @@ viewEl.addEventListener('submit', async (e) => {
 
 viewEl.addEventListener('click', async (e) => {
   const d = e.target.dataset;
+
+  if (d.page) {
+    views._leaseUi.page = Number(d.page);
+    return drawLeases();
+  }
+
   if (d.lease) return showLease(d.lease);
 
-  if (d.del && confirm('هل أنت متأكد من الحذف؟')) {
-    if (await run(() => api.del(d.del), 'تم الحذف')) show(current);
+  if (d.del) {
+    if (confirm('هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذا الإجراء.') &&
+        (await run(() => api.del(d.del), 'تم الحذف'))) show(current);
     return;
   }
 

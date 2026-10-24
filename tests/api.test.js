@@ -42,7 +42,6 @@ test('full flow: lease, partial payment, overdue report', async () => {
   });
   assert.equal(lease.status, 201);
   assert.equal(lease.body.installments.length, 12);
-  assert.equal((await call('GET', `/units/${unit.id}`)).body.status, 'occupied');
 
   // لا يمكن تأجير نفس الوحدة مرتين
   const dup = await call('POST', '/leases', {
@@ -67,7 +66,6 @@ test('full flow: lease, partial payment, overdue report', async () => {
   const ended = (await call('POST', `/leases/${lease.body.id}/end`, { end_date: '2026-03-15' })).body;
   assert.equal(ended.status, 'ended');
   assert.equal(ended.installments.length, 3);
-  assert.equal((await call('GET', `/units/${unit.id}`)).body.status, 'vacant');
 });
 
 test('appointments CRUD and validation', async () => {
@@ -79,8 +77,37 @@ test('appointments CRUD and validation', async () => {
   assert.equal((await call('GET', `/appointments/${a.id}`)).status, 404);
 });
 
-test('dashboard returns summary', async () => {
-  const d = (await call('GET', '/reports/dashboard')).body;
-  assert.equal(typeof d.units.total, 'number');
-  assert.ok('overdue' in d);
+test('historical paid lease counts as expired revenue; delete works', async () => {
+  const prop = (await call('POST', '/properties', { name: 'مجمع' })).body;
+  const unit = (await call('POST', '/units', { property_id: prop.id, unit_number: 'H1' })).body;
+  const tenant = (await call('POST', '/tenants', { full_name: 'عميل سابق' })).body;
+
+  const before = (await call('GET', '/reports/overview')).body;
+  const lease = await call('POST', '/leases', {
+    unit_id: String(unit.id), tenant_id: String(tenant.id), contract_number: '555',
+    start_date: '2020-01-01', end_date: '2021-01-01', rent_amount: '12000', payment_cycle: 'annual', mark_paid: 'on',
+  });
+  assert.equal(lease.status, 201);
+  assert.equal(lease.body.effective_status, 'expired');
+  assert.equal(lease.body.installments[0].status, 'paid');
+
+  const after = (await call('GET', '/reports/overview')).body;
+  assert.equal(after.total, before.total + 1);
+  assert.equal(after.expired, before.expired + 1);
+  assert.equal(after.revenue_total, before.revenue_total + 12000);
+
+  const summary = (await call('GET', '/units/summary')).body.find((u) => u.id === unit.id);
+  assert.equal(summary.revenue, 12000);
+  assert.equal(summary.occupied, 0);
+
+  // لا يمكن حذف عميل له عقد، لكن حذف العقد ثم العميل ينجح
+  assert.equal((await call('DELETE', `/tenants/${tenant.id}`)).status, 409);
+  assert.equal((await call('DELETE', `/leases/${lease.body.id}`)).status, 204);
+  assert.equal((await call('DELETE', `/tenants/${tenant.id}`)).status, 204);
+  assert.equal((await call('GET', '/reports/overview')).body.revenue_total, before.revenue_total);
+});
+
+test('alerts endpoint returns the three sections', async () => {
+  const d = (await call('GET', '/reports/alerts')).body;
+  assert.ok(Array.isArray(d.expiring) && Array.isArray(d.overdue) && Array.isArray(d.appointments));
 });

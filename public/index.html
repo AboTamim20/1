@@ -8,17 +8,21 @@
 </head>
 <body>
   <header>
-    <h1>إدارة الإيجارات</h1>
-    <nav id="tabs">
-      <button data-view="dashboard" class="active">لوحة التحكم</button>
-      <button data-view="overdue">المتأخرون</button>
-      <button data-view="appointments">المواعيد</button>
-      <button data-view="leases">العقود</button>
-      <button data-view="tenants">المستأجرون</button>
-      <button data-view="properties">العقارات والوحدات</button>
-      <button data-view="payments">الدفعات</button>
-    </nav>
+    <div>
+      <h1>🏠 لوحة تحكم الإيجارات</h1>
+      <p>إدارة ومتابعة العقود والإيرادات العقارية</p>
+    </div>
+    <span id="today" class="date-badge"></span>
   </header>
+  <nav id="tabs">
+    <button data-view="overview" class="active">📊 نظرة عامة</button>
+    <button data-view="leases">📋 العقود</button>
+    <button data-view="tenants">👥 العملاء</button>
+    <button data-view="units">🏘️ الوحدات</button>
+    <button data-view="alerts">🔔 التنبيهات</button>
+    <button data-view="appointments">📅 المواعيد</button>
+    <button data-view="ideas">💡 مقترحات التطوير</button>
+  </nav>
   <main id="view"></main>
   <div id="toast" hidden></div>
   <script src="js/api.js"></script>

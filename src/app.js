@@ -13,15 +13,7 @@ function createApp() {
     '/properties',
     crudRouter({ table: 'properties', fields: ['name', 'address', 'type', 'notes'], required: ['name'] })
   );
-  api.use(
-    '/units',
-    crudRouter({
-      table: 'units',
-      fields: ['property_id', 'unit_number', 'rent_amount', 'status', 'notes'],
-      required: ['property_id', 'unit_number'],
-      filters: ['property_id', 'status'],
-    })
-  );
+  api.use('/units', require('./routes/units'));
   api.use(
     '/tenants',
     crudRouter({

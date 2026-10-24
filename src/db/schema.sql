@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS leases (
   deposit        REAL NOT NULL DEFAULT 0,
   status         TEXT NOT NULL DEFAULT 'active',   -- active | ended | terminated
   notes          TEXT,
+  contract_number TEXT,                            -- رقم العقد (مثل رقم عقد إيجار)
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

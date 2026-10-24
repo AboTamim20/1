@@ -9,7 +9,14 @@ function openDb(file = process.env.DB_FILE || path.join(__dirname, '../../data/r
   db = new DatabaseSync(file);
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
+  migrate(db);
   return db;
+}
+
+// ترقية قواعد البيانات القديمة التي أُنشئت قبل إضافة الأعمدة الجديدة
+function migrate(conn) {
+  const leaseCols = conn.prepare('PRAGMA table_info(leases)').all().map((c) => c.name);
+  if (!leaseCols.includes('contract_number')) conn.exec('ALTER TABLE leases ADD COLUMN contract_number TEXT');
 }
 
 function getDb() {
