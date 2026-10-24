@@ -22,6 +22,8 @@ function table(columns, rows) {
   return `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
+const delBtn = (path, id) => `<button class="link danger" data-del="${path}/${id}">حذف</button>`;
+
 function card(title, value, cls = '') {
   return `<div class="card ${cls}"><div class="label">${title}</div><div class="value">${value}</div></div>`;
 }
@@ -109,7 +111,8 @@ const views = {
         { title: 'الوقت', render: (r) => esc(r.scheduled_at.replace('T', ' ')) },
         { title: 'الحالة', render: (r) => `<span class="badge ${r.status === 'done' ? 'ok' : ''}">${label(r.status)}</span>` },
         { title: '', render: (r) => r.status === 'scheduled'
-          ? `<button class="link" data-appt-done="${r.id}">تم</button> · <button class="link" data-appt-cancel="${r.id}">إلغاء</button>` : '' },
+          ? `<button class="link" data-appt-done="${r.id}">تم</button> · <button class="link" data-appt-cancel="${r.id}">إلغاء</button> · ` : '' },
+        { title: '', render: (r) => delBtn('/appointments', r.id) },
       ], rows)}`;
   },
 
@@ -171,6 +174,7 @@ const views = {
         { title: 'الجوال', key: 'phone' },
         { title: 'الهوية', key: 'national_id' },
         { title: 'البريد', key: 'email' },
+        { title: '', render: (r) => delBtn('/tenants', r.id) },
       ], rows)}`;
   },
 
@@ -194,7 +198,14 @@ const views = {
         { title: 'الوحدة', key: 'unit_number' },
         { title: 'الإيجار', render: (u) => money(u.rent_amount) },
         { title: 'الحالة', render: (u) => `<span class="badge ${u.status === 'occupied' ? 'ok' : ''}">${label(u.status)}</span>` },
-      ], units)}`;
+        { title: '', render: (u) => delBtn('/units', u.id) },
+      ], units)}
+      <h2>العقارات</h2>
+      ${table([
+        { title: 'العقار', key: 'name' },
+        { title: 'العنوان', key: 'address' },
+        { title: '', render: (p) => delBtn('/properties', p.id) },
+      ], props)}`;
   },
 
   async payments() {

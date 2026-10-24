@@ -51,6 +51,11 @@ viewEl.addEventListener('click', async (e) => {
   const d = e.target.dataset;
   if (d.lease) return showLease(d.lease);
 
+  if (d.del && confirm('هل أنت متأكد من الحذف؟')) {
+    if (await run(() => api.del(d.del), 'تم الحذف')) show(current);
+    return;
+  }
+
   if (d.leaseEnd && confirm('إنهاء العقد وإلغاء الأقساط المستقبلية؟')) {
     if (await run(() => api.post(`/leases/${d.leaseEnd}/end`, {}), 'تم إنهاء العقد')) show(current);
   }

@@ -39,3 +39,4 @@ button.link { background: none; border: 0; color: var(--primary); cursor: pointe
 h2 { font-size: 1.1rem; }
 .empty { color: var(--muted); padding: 12px; }
 #toast { position: fixed; bottom: 16px; inset-inline-start: 16px; background: var(--text); color: var(--bg); padding: 10px 14px; border-radius: 8px; }
+button.link.danger { color: var(--danger); }
