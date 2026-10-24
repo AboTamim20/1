@@ -23,6 +23,7 @@ function createApp() {
       orderBy: 'full_name',
     })
   );
+  api.use('/import', require('./routes/import'));
   api.use('/leases', require('./routes/leases'));
   api.use('/payments', require('./routes/payments'));
   api.use('/appointments', require('./routes/appointments'));

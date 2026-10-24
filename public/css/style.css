@@ -106,3 +106,10 @@ button.link.danger { color: #f87171; }
   header h1 { font-size: 1.2rem; }
   nav button { padding: 12px 10px; font-size: .85rem; }
 }
+.import-box { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.import-box .cards { width: 100%; margin-top: 8px; }
+.import-box .table-wrap { width: 100%; }
+.import-box p { margin: 0; line-height: 1.8; }
+#import-result { width: 100%; }
+.import-box .cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.import-box input[type=file] { color: var(--muted); }

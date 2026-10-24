@@ -23,15 +23,21 @@ function getDb() {
   return db || openDb();
 }
 
+// معاملة قابلة للتداخل: الأولى BEGIN والداخلية SAVEPOINT (تسمح بالتراجع عن صف واحد فقط)
+let depth = 0;
 function transaction(fn) {
   const conn = getDb();
-  conn.exec('BEGIN');
+  const sp = `sp_${depth}`;
+  conn.exec(depth === 0 ? 'BEGIN' : `SAVEPOINT ${sp}`);
+  depth++;
   try {
     const result = fn(conn);
-    conn.exec('COMMIT');
+    depth--;
+    conn.exec(depth === 0 ? 'COMMIT' : `RELEASE ${sp}`);
     return result;
   } catch (err) {
-    conn.exec('ROLLBACK');
+    depth--;
+    conn.exec(depth === 0 ? 'ROLLBACK' : `ROLLBACK TO ${sp}; RELEASE ${sp}`);
     throw err;
   }
 }

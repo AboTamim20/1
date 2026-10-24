@@ -68,8 +68,34 @@ viewEl.addEventListener('submit', async (e) => {
   if (await run(() => api.post(form.dataset.create, formData(form)), 'تم الحفظ')) show(current);
 });
 
+async function runImport(dryRun) {
+  const file = document.getElementById('import-file').files[0];
+  const out = document.getElementById('import-result');
+  if (!file) return toast('اختر ملف Excel أولاً');
+  const paid = document.getElementById('import-paid').checked ? 1 : 0;
+  out.innerHTML = '<div class="empty">جاري المعالجة...</div>';
+  try {
+    const res = await fetch(`/api/import/leases?dry_run=${dryRun ? 1 : 0}&mark_paid=${paid}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'فشل الاستيراد');
+    out.innerHTML = importResultHtml(data);
+    if (!dryRun) {
+      toast(`تم استيراد ${data.created} عقد`);
+      views._leases = await api.get('/leases');
+      drawLeases();
+    }
+  } catch (e) {
+    out.innerHTML = `<div class="empty t-red">${esc(e.message)}</div>`;
+  }
+}
+
 viewEl.addEventListener('click', async (e) => {
   const d = e.target.dataset;
+
+  if (e.target.id === 'import-preview') return runImport(true);
+  if (e.target.id === 'import-confirm') return runImport(false);
 
   if (d.page) {
     views._leaseUi.page = Number(d.page);

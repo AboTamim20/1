@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { openDb } = require('../src/db');
@@ -110,4 +112,43 @@ test('historical paid lease counts as expired revenue; delete works', async () =
 test('alerts endpoint returns the three sections', async () => {
   const d = (await call('GET', '/reports/alerts')).body;
   assert.ok(Array.isArray(d.expiring) && Array.isArray(d.overdue) && Array.isArray(d.appointments));
+});
+
+test('excel import: dry run changes nothing, real run creates leases and reports row errors', async () => {
+  const file = fs.readFileSync(path.join(__dirname, 'fixtures/leases.xlsx'));
+  const post = async (qs) => {
+    const res = await fetch(`${base}/import/leases?${qs}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file });
+    return { status: res.status, body: await res.json() };
+  };
+  const before = (await call('GET', '/reports/overview')).body;
+
+  const dry = await post('dry_run=1');
+  assert.equal(dry.status, 200);
+  assert.equal(dry.body.created, 4);
+  assert.equal((await call('GET', '/reports/overview')).body.total, before.total); // لم يُحفظ شيء
+
+  const real = (await post('dry_run=0')).body;
+  assert.deepEqual(
+    [real.total, real.created, real.skipped, real.errors.length, real.new_tenants, real.new_units],
+    [7, 4, 1, 2, 3, 3]
+  );
+  assert.deepEqual(real.errors.map((e) => e.row), [6, 7]);
+
+  const after = (await call('GET', '/reports/overview')).body;
+  assert.equal(after.total, before.total + 4);
+  assert.equal(after.revenue_total, before.revenue_total + 80000);
+  assert.equal(after.early_ended, before.early_ended + 1);
+
+  // الاستيراد مرة ثانية لا يكرر شيئاً (رقم العقد)
+  const again = (await post('dry_run=0')).body;
+  assert.equal(again.created, 0);
+  assert.equal(again.skipped, 5);
+
+  const leases = (await call('GET', '/leases')).body.filter((l) => ['9002', '9003'].includes(l.contract_number));
+  assert.equal(leases.find((l) => l.contract_number === '9002').start_date, '2022-01-27');
+  assert.equal(leases.find((l) => l.contract_number === '9003').effective_status, 'ended');
+
+  // ملف غير صالح
+  const bad = await fetch(`${base}/import/leases`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from('not excel') });
+  assert.equal(bad.status, 400);
 });

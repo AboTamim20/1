@@ -6,7 +6,7 @@ const fmtTime = (s) => (s ? s.replace('T', ' ') : '');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const LABELS = {
-  monthly: 'شهري', quarterly: 'ربع سنوي', semiannual: 'نصف سنوي', annual: 'سنوي',
+  once: 'دفعة واحدة', monthly: 'شهري', quarterly: 'ربع سنوي', semiannual: 'نصف سنوي', annual: 'سنوي',
   viewing: 'معاينة', maintenance: 'صيانة', collection: 'تحصيل', renewal: 'تجديد', other: 'أخرى',
   scheduled: 'مجدول', done: 'تم', cancelled: 'ملغي',
   pending: 'مستحق', partial: 'جزئي', paid: 'مدفوع',
@@ -96,12 +96,23 @@ const views = {
           <label class="check">من <input name="start_date" type="date" required /></label>
           <label class="check">إلى <input name="end_date" type="date" required /></label>
           <input name="rent_amount" type="number" step="0.01" min="0" placeholder="قيمة القسط" required />
-          <select name="payment_cycle">${options(['annual', 'semiannual', 'quarterly', 'monthly'].map((v) => ({ v })), 'v', (o) => label(o.v))}</select>
+          <select name="payment_cycle">${options(['annual', 'once', 'semiannual', 'quarterly', 'monthly'].map((v) => ({ v })), 'v', (o) => label(o.v))}</select>
           <input name="deposit" type="number" step="0.01" min="0" placeholder="التأمين (اختياري)" />
           <label class="check"><input name="mark_paid" type="checkbox" /> مسدّد بالكامل (عقد سابق)</label>
           <button class="primary">حفظ العقد</button>
           <div class="form-title">لا يوجد العميل؟ أضفه أولاً من تبويب «العملاء».</div>
         </form>
+      </details>
+      <details class="form-panel"><summary>📥 استيراد عقود من ملف Excel</summary>
+        <div class="import-box">
+          <p class="muted">ملف ‎.xlsx بصف عناوين في الأعلى. الأعمدة المطلوبة: <b>اسم المستأجر</b>، <b>الوحدة</b>، <b>تاريخ البداية</b>، <b>تاريخ الانتهاء</b>.
+          الاختيارية: رقم العقد، قيمة العقد، الحالة (نشط / تم الإنهاء / مفسوخ)، العقار، الجوال، الهوية.
+          العملاء والوحدات غير الموجودة تُنشأ تلقائياً، والعقود المكررة (بنفس رقم العقد) تُتجاهل.</p>
+          <input type="file" id="import-file" accept=".xlsx" />
+          <label class="check"><input type="checkbox" id="import-paid" checked /> اعتبار العقود المستوردة مسدّدة بالكامل (تُحسب في الإيرادات)</label>
+          <button class="primary" id="import-preview" type="button">معاينة</button>
+          <div id="import-result"></div>
+        </div>
       </details>
       <div class="section-head"><h2>قائمة جميع العقود</h2><span class="muted" id="lease-count"></span></div>
       <div class="toolbar">
@@ -286,3 +297,19 @@ function drawLeases() {
 }
 
 const after = { leases: drawLeases };
+
+// نتيجة المعاينة/الاستيراد
+function importResultHtml(r) {
+  const errs = r.errors.length
+    ? table([{ title: 'الصف', key: 'row' }, { title: 'المشكلة', key: 'message' }], r.errors)
+    : '';
+  return `
+    <div class="cards">
+      ${card('✅', r.dry_run ? 'عقود ستُضاف' : 'عقود أُضيفت', nf.format(r.created), `من ${nf.format(r.total)} صف`, 'c-green')}
+      ${card('👥', 'عملاء جدد', nf.format(r.new_tenants), '', 'c-blue')}
+      ${card('🏠', 'وحدات جديدة', nf.format(r.new_units), '', 'c-purple')}
+      ${card('⏭️', 'مكررة (تُتجاهل)', nf.format(r.skipped), '', 'c-amber')}
+      ${card('❌', 'صفوف بها أخطاء', nf.format(r.errors.length), 'لن تُستورد', 'c-red')}
+    </div>${errs}
+    ${r.dry_run && r.created ? '<button class="primary" id="import-confirm" type="button">تأكيد الاستيراد</button>' : ''}`;
+}

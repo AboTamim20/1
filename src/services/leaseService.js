@@ -4,6 +4,9 @@ const { CYCLE_MONTHS, addMonths, today, daysBetween } = require('../utils/dates'
 
 // يولّد جدول الأقساط من بداية العقد حتى نهايته حسب دورة الدفع
 function buildSchedule({ start_date, end_date, rent_amount, payment_cycle }) {
+  if (end_date <= start_date) throw new HttpError(400, 'تاريخ نهاية العقد يجب أن يكون بعد البداية');
+  // دفعة واحدة: قسط وحيد بقيمة العقد كاملة عند البداية (يُستخدم عند الاستيراد)
+  if (payment_cycle === 'once') return [{ due_date: start_date, amount: rent_amount }];
   const step = CYCLE_MONTHS[payment_cycle];
   if (!step) throw new HttpError(400, 'دورة الدفع غير صحيحة');
   if (end_date <= start_date) throw new HttpError(400, 'تاريخ نهاية العقد يجب أن يكون بعد البداية');
@@ -45,7 +48,7 @@ function createLease(input) {
     notes: input.notes ?? null,
     contract_number: input.contract_number || null,
   };
-  if (!(lease.rent_amount > 0)) throw new HttpError(400, 'قيمة القسط يجب أن تكون أكبر من صفر');
+  if (!(lease.rent_amount >= 0)) throw new HttpError(400, 'قيمة القسط غير صحيحة');
   const schedule = buildSchedule(lease);
   const markPaid = isTrue(input.mark_paid);
 
@@ -68,8 +71,9 @@ function createLease(input) {
     const markDue = db.prepare(`UPDATE installments SET paid_amount = amount, status = 'paid' WHERE id = ?`);
     for (const d of schedule) {
       const { lastInsertRowid: instId } = insertDue.run(leaseId, d.due_date, d.amount);
-      if (markPaid) {
-        insertPay.run(instId, d.amount, d.due_date);
+      // قسط بقيمة صفر لا يُعدّ مستحقاً أبداً
+      if (markPaid || d.amount === 0) {
+        if (d.amount > 0) insertPay.run(instId, d.amount, d.due_date);
         markDue.run(instId);
       }
     }
